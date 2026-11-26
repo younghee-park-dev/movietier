@@ -48,7 +48,7 @@ MovieTier는 별점보다 더 재미있게 영화를 기록하고 싶은 사람�
 | 백엔드 | Supabase (인증, PostgreSQL, 실시간, Edge Functions) |
 | Edge Functions | TypeScript (Deno) |
 | 네트워크 | http, TMDB REST API |
-| 보안 | envied (환경 변수 난독화) |
+| 보안 | 행 단위 보안(RLS), 비공개 실시간 채널, envied (환경 변수 난독화) |
 | UI | flutter_screenutil, google_fonts, lottie, cached_network_image, flutter_svg |
 | 공유 | screenshot, share_plus, saver_gallery |
 
@@ -62,7 +62,7 @@ flowchart LR
     UI --> TMDB[TMDB API]
     Local <-->|변경분 동기화| Supabase[(Supabase PostgreSQL)]
     UI <-->|소셜 로그인| Auth[Supabase 인증<br/>카카오 · 구글 · 애플]
-    Supabase --> Realtime[실시간 방송<br/>다른 기기 로그아웃]
+    Supabase --> Realtime[비공개 실시간 채널<br/>다른 기기 로그아웃]
     Supabase --> Edge[Edge Function<br/>계정 정리]
 ```
 
@@ -77,6 +77,8 @@ flowchart LR
 
 **2. 기기 간 단일 로그인 세션**
 - 새 기기에서 로그인하면 Supabase 실시간 방송으로 다른 기기를 즉시 로그아웃시킵니다.
+- 방송은 **비공개 채널**을 사용하고, `realtime.messages`의 RLS 정책으로 본인 채널만 듣고 보낼 수 있게 막았습니다. 프로젝트의 공개 채널 접근도 꺼 두었습니다.
+- 신호를 받은 기기는 바로 로그아웃하지 않고, 서버의 세션 값과 비교해서 정말 다를 때만 로그아웃합니다. 그래서 가짜 신호로는 다른 사람을 로그아웃시킬 수 없습니다.
 - 앱 실행 시와 인터넷 재연결 시에도 세션을 확인해서, 신호를 놓쳐도 처리됩니다.
 - 실시간 채널의 토큰 갱신 타이밍 오류는 자동으로 재시도합니다.
 
@@ -89,8 +91,13 @@ flowchart LR
 - 약관과 개인정보처리방침은 Supabase에서 먼저 불러오고, 실패하면 캐시, 그다음 앱 내장 파일 순으로 불러옵니다.
 - 새 사용자는 로그인 후 약관에 동의해야 하며, 끝까지 동의하지 않은 계정은 Supabase Edge Function이 정리합니다.
 
-**5. 비밀 정보 관리**
-- API 키는 환경 변수와 난독화(envied)로 소스 코드에서 분리했습니다.
+**5. RLS로 데이터베이스 보호**
+- 모든 테이블에 행 단위 보안(RLS)을 켜고, 정책으로 각 사용자가 자기 데이터(`auth.uid()`)만 다룰 수 있게 했습니다.
+- 데이터를 지우는 정리 함수는 서버에서만 실행됩니다. 앱 사용자의 실행 권한을 회수하고, Edge Function이 쓰는 서버 권한(service role)에만 허용했습니다.
+- DB 구조, 트리거, RLS 정책을 SQL 마이그레이션 파일로 기록해 코드와 함께 관리합니다.
+
+**6. 비밀 정보 관리**
+- API 키는 환경 변수와 난독화(envied)로 저장소에서 분리했습니다.
 
 ---
 
@@ -99,6 +106,7 @@ flowchart LR
 - 서비스 기획, 화면과 사용 흐름 설계
 - iOS·Android용 Flutter 앱 개발
 - Supabase 데이터베이스, 인증, 실시간 세션 로직 설계
+- RLS 정책과 DB 구조 SQL 마이그레이션 작성
 - TypeScript로 Supabase Edge Function 작성
 - 스토어 제출용 개인정보처리방침과 이용약관 준비
 
@@ -108,6 +116,7 @@ flowchart LR
 
 - [x] 핵심 기능: 티어, 검색, 상세, 리뷰, 찜, 내보내기, 배지
 - [x] 소셜 로그인, 오프라인 우선 동기화
+- [x] 비공개 실시간 채널, DB 구조·RLS 정책을 SQL 마이그레이션으로 관리
 - [ ] 앱스토어·구글 플레이 출시
 - [ ] 단위·위젯 테스트
 - [ ] GitHub Actions로 CI/CD

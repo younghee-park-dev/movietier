@@ -51,7 +51,7 @@ the Supabase backend and the legal and consent flows needed for store release.
 | Backend | Supabase (Auth, PostgreSQL, Realtime, Edge Functions) |
 | Edge Functions | TypeScript (Deno) |
 | Networking | http, TMDB REST API |
-| Security | envied (obfuscated environment variables) |
+| Security | Row Level Security (RLS), private Realtime channels, envied (obfuscated environment variables) |
 | UI | flutter_screenutil, google_fonts, lottie, cached_network_image, flutter_svg |
 | Sharing | screenshot, share_plus, saver_gallery |
 
@@ -65,7 +65,7 @@ flowchart LR
     UI --> TMDB[TMDB API]
     Local <-->|incremental sync| Supabase[(Supabase PostgreSQL)]
     UI <-->|OAuth| Auth[Supabase Auth<br/>Kakao · Google · Apple]
-    Supabase --> Realtime[Realtime<br/>force-logout broadcast]
+    Supabase --> Realtime[Realtime<br/>private force-logout channel]
     Supabase --> Edge[Edge Function<br/>account cleanup]
 ```
 
@@ -81,6 +81,10 @@ flowchart LR
 **2. Single active session across devices**
 - When a user signs in on a new device, the other device is signed out in real time
   through a Supabase Realtime broadcast.
+- The broadcast uses a **private channel** protected by RLS policies on `realtime.messages`,
+  so users can only listen and send on their own channel. Public channel access is turned off for the project.
+- A device that receives the signal does not trust it blindly: it compares its local session ID with the server
+  and signs out only if they differ, so a fake signal cannot log anyone out.
 - The app also checks the active session on launch and on reconnect, so a missed signal is still handled.
 - Token-refresh timing errors on the realtime channel are retried automatically.
 
@@ -95,8 +99,14 @@ flowchart LR
 - New users must accept the terms after signing in. A Supabase Edge Function removes
   accounts that never accepted them.
 
-**5. Secret management**
-- API keys (Supabase and TMDB) are kept out of source code using environment variables with obfuscation (envied).
+**5. Database security with RLS**
+- Row Level Security is enabled on every table, and policies limit each user to their own rows (`auth.uid()`).
+- Cleanup functions that delete data run only on the server: execute permission is revoked from app users
+  and granted only to the service role used by the Edge Function.
+- The database schema, triggers and RLS policies are version-controlled as SQL migration files.
+
+**6. Secret management**
+- API keys (Supabase and TMDB) are kept out of the repository using environment variables with obfuscation (envied).
 
 ---
 
@@ -105,6 +115,7 @@ flowchart LR
 - Planned the product and designed the UI and user flows
 - Built the Flutter app for both iOS and Android
 - Designed the Supabase database, authentication and realtime session logic
+- Wrote RLS policies and SQL migrations for the database schema
 - Wrote a Supabase Edge Function in TypeScript
 - Prepared the privacy policy and terms of service for store submission
 
@@ -114,6 +125,7 @@ flowchart LR
 
 - [x] Core features: tier ranking, search, details, reviews, watchlist, export, badges
 - [x] Social login and offline-first sync
+- [x] Private realtime channel and database schema / RLS policies managed as SQL migrations
 - [ ] App Store and Google Play release
 - [ ] Unit and widget tests
 - [ ] CI/CD with GitHub Actions
