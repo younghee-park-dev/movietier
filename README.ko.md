@@ -51,6 +51,7 @@ MovieTier는 별점보다 더 재미있게 영화를 기록하고 싶은 사람�
 | 보안 | 행 단위 보안(RLS), 비공개 실시간 채널, envied (환경 변수 난독화) |
 | UI | flutter_screenutil, google_fonts, lottie, cached_network_image, flutter_svg |
 | 공유 | screenshot, share_plus, saver_gallery |
+| 테스트·CI | flutter_test, GitHub Actions |
 
 ---
 
@@ -96,7 +97,12 @@ flowchart LR
 - 데이터를 지우는 정리 함수는 서버에서만 실행됩니다. 앱 사용자의 실행 권한을 회수하고, Edge Function이 쓰는 서버 권한(service role)에만 허용했습니다.
 - DB 구조, 트리거, RLS 정책을 SQL 마이그레이션 파일로 기록해 코드와 함께 관리합니다.
 
-**6. 비밀 정보 관리**
+**6. 자동 테스트와 CI**
+- 핵심 로직을 단위 테스트로 확인합니다: 티어표를 내보내기 이미지 여러 장으로 나누는 로직(티어·순위 순서, 페이지 넘침), 배지 조건의 경계값, 랜덤 닉네임 생성.
+- push할 때마다 GitHub Actions가 `flutter analyze`와 `flutter test`를 자동으로 실행합니다. CI에는 가짜 환경 변수만 사용합니다.
+- 작업은 짧게 쓰는 브랜치에서 하고, 검사를 통과하면 Pull Request로 `main`에 합칩니다.
+
+**7. 비밀 정보 관리**
 - API 키는 환경 변수와 난독화(envied)로 저장소에서 분리했습니다.
 
 ---
@@ -107,6 +113,7 @@ flowchart LR
 - iOS·Android용 Flutter 앱 개발
 - Supabase 데이터베이스, 인증, 실시간 세션 로직 설계
 - RLS 정책과 DB 구조 SQL 마이그레이션 작성
+- 단위 테스트 작성, GitHub Actions로 CI 구성
 - TypeScript로 Supabase Edge Function 작성
 - 스토어 제출용 개인정보처리방침과 이용약관 준비
 
@@ -118,8 +125,9 @@ flowchart LR
 - [x] 소셜 로그인, 오프라인 우선 동기화
 - [x] 비공개 실시간 채널, DB 구조·RLS 정책을 SQL 마이그레이션으로 관리
 - [ ] 앱스토어·구글 플레이 출시
-- [ ] 단위·위젯 테스트
-- [ ] GitHub Actions로 CI/CD
+- [x] 핵심 로직 단위 테스트, GitHub Actions CI
+- [ ] 테스트 확대 (동기화 로직, 위젯 테스트)
+- [ ] 출시 빌드 자동화 (CD)
 
 ---
 

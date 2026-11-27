@@ -54,6 +54,7 @@ the Supabase backend and the legal and consent flows needed for store release.
 | Security | Row Level Security (RLS), private Realtime channels, envied (obfuscated environment variables) |
 | UI | flutter_screenutil, google_fonts, lottie, cached_network_image, flutter_svg |
 | Sharing | screenshot, share_plus, saver_gallery |
+| Testing & CI | flutter_test, GitHub Actions |
 
 ---
 
@@ -105,7 +106,13 @@ flowchart LR
   and granted only to the service role used by the Edge Function.
 - The database schema, triggers and RLS policies are version-controlled as SQL migration files.
 
-**6. Secret management**
+**6. Automated tests and CI**
+- Unit tests cover core logic: splitting tier lists into export pages (tier and rank order, page overflow),
+  badge rules at their boundaries, and random nickname generation.
+- GitHub Actions runs `flutter analyze` and `flutter test` on every push, with dummy environment values only.
+- Work is done on short-lived branches and merged into `main` through pull requests after the checks pass.
+
+**7. Secret management**
 - API keys (Supabase and TMDB) are kept out of the repository using environment variables with obfuscation (envied).
 
 ---
@@ -116,6 +123,7 @@ flowchart LR
 - Built the Flutter app for both iOS and Android
 - Designed the Supabase database, authentication and realtime session logic
 - Wrote RLS policies and SQL migrations for the database schema
+- Wrote unit tests and set up CI with GitHub Actions
 - Wrote a Supabase Edge Function in TypeScript
 - Prepared the privacy policy and terms of service for store submission
 
@@ -127,8 +135,9 @@ flowchart LR
 - [x] Social login and offline-first sync
 - [x] Private realtime channel and database schema / RLS policies managed as SQL migrations
 - [ ] App Store and Google Play release
-- [ ] Unit and widget tests
-- [ ] CI/CD with GitHub Actions
+- [x] Unit tests for core logic and CI with GitHub Actions
+- [ ] More tests (sync logic, widget tests)
+- [ ] Automated release builds (CD)
 
 ---
 
